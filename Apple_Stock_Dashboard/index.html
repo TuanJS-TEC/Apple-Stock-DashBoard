@@ -1,0 +1,241 @@
+
+    <html>
+        <head>
+            <title>Trang chủ - Dashboard Cổ phiếu Apple</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            
+    <style>
+        /* --- Tổng thể --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* --- Thanh Điều hướng (NAV) --- */
+        nav {
+            background-color: #ffffff;
+            padding: 15px 30px;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        nav a {
+            margin: 0 20px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 500;
+            color: #007bff;
+            transition: color 0.2s;
+        }
+        nav a:hover {
+            color: #0056b3;
+        }
+        nav a.active {
+            color: #333;
+            font-weight: 700;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+        }
+
+        /* --- Tiêu đề --- */
+        h1 {
+            color: #222;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        /* --- Lưới chứa biểu đồ --- */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        /* --- Thẻ (Card) chứa biểu đồ --- */
+        .chart-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 25px;
+            overflow: hidden;
+        }
+        .chart-card h2 {
+            margin-top: 0;
+            color: #0056b3;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        /* >>> MỚI: CSS ĐỂ BIẾN BIỂU ĐỒ THÀNH NÚT BẤM <<< */
+        .chart-card img,
+        .chart-card iframe {
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #eee;
+            box-sizing: border-box;
+            cursor: pointer; /* Biến con trỏ thành hình bàn tay */
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .chart-card img:hover,
+        .chart-card iframe:hover {
+            transform: scale(1.02); /* Phóng to nhẹ khi di chuột */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        /* --- Phần Phân tích (Insight) --- */
+        .insight {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 15px 20px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 1.05em;
+            line-height: 1.6;
+        }
+        .insight strong {
+            color: #0056b3;
+        }
+
+        /* >>> MỚI: CSS CHO MODAL (LIGHTBOX) <<< */
+        .modal-overlay {
+            position: fixed; /* Che toàn bộ màn hình */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* Lớp mờ màu đen */
+            display: none; /* Ẩn ban đầu */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.visible {
+            display: flex; /* Hiện khi có class 'visible' */
+        }
+        .modal-content {
+            position: relative;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90vw; /* Rộng 90% màn hình */
+            height: 90vh; /* Cao 90% màn hình */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content iframe,
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            border: none;
+            object-fit: contain; /* Hiển thị toàn bộ ảnh (cho PNG) */
+        }
+        .modal-close {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 35px;
+            height: 35px;
+            line-height: 35px;
+            text-align: center;
+            background: #fff;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        /* --- Responsive cho màn hình nhỏ --- */
+        @media (max-width: 700px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            nav a {
+                display: block;
+                margin: 10px 0;
+            }
+            .modal-content {
+                width: 95vw;
+                height: 80vh;
+            }
+        }
+    </style>
+    
+        </head>
+        <body>
+            <nav><a href="index.html" class="active">Trang chủ (Tổng quan)</a><a href="1_timeseries.html" class="">Phân tích Thời gian</a><a href="2_distributions.html" class="">Phân tích Phân phối</a><a href="3_relationships.html" class="">Phân tích Quan hệ</a><a href="4_storytelling.html" class="">Câu chuyện Dữ liệu</a></nav>
+            <div class="container">
+                <h1>Trang chủ: Tổng quan Tin tức & Tương quan</h1>
+                <p>Tổng hợp các tin tức và mối tương quan của cổ phiếu Apple (AAPL). (Click vào biểu đồ để xem toàn màn hình)</p>
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <h2>WordCloud Tin tức</h2>
+                        <p class="insight"><strong>Insight:</strong> Các từ khóa nổi bật trong tin tức gần đây.</p>
+                        <img src="charts_static/news_wordcloud.png" alt="WordCloud Tin tức">
+                    </div>
+                    <div class="chart-card">
+                        <h2>Heatmap Tương quan</h2>
+                        <p class="insight"><strong>Insight:</strong> 'Open', 'High', 'Low', 'Close' tương quan 1:1. Mối quan hệ giữa 'Volume' và 'Daily_Change' không rõ rệt.</p>
+                        <img src="charts_static/correlation_heatmap.png" alt="Heatmap Tương quan">
+                    </div>
+                </div>
+            </div>
+            
+        <div class="modal-overlay" id="chartModal">
+            <span class="modal-close" id="modalCloseButton">&times;</span>
+            <div class="modal-content" id="modalContent">
+                </div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const modal = document.getElementById('chartModal');
+                const modalContent = document.getElementById('modalContent');
+                const closeModal = document.getElementById('modalCloseButton');
+                const charts = document.querySelectorAll('.chart-card img, .chart-card iframe');
+                charts.forEach(chart => {
+                    chart.addEventListener('click', (e) => {
+                        e.preventDefault(); 
+                        modalContent.innerHTML = '';
+                        let newElement;
+                        if (chart.tagName === 'IMG') {
+                            newElement = document.createElement('img');
+                            newElement.src = chart.src;
+                        } else if (chart.tagName === 'IFRAME') {
+                            newElement = document.createElement('iframe');
+                            newElement.src = chart.src;
+                            newElement.setAttribute('frameborder', '0');
+                        }
+                        if (newElement) {
+                            modalContent.appendChild(newElement);
+                            modal.classList.add('visible');
+                        }
+                    });
+                });
+                const closeTheModal = () => {
+                    modal.classList.remove('visible');
+                    modalContent.innerHTML = '';
+                };
+                closeModal.addEventListener('click', closeTheModal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeTheModal();
+                    }
+                });
+            });
+        </script>
+    
+        </body>
+    </html>
+    

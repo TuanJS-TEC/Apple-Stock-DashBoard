@@ -1,0 +1,9 @@
+pandas
+requests
+beautifulsoup4
+matplotlib
+seaborn
+plotly
+wordcloud
+statsmodels
+lxml

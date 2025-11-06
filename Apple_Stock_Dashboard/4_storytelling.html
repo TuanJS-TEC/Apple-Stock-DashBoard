@@ -1,0 +1,335 @@
+
+    <html>
+        <head>
+            <title>Câu chuyện Dữ liệu Apple</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            
+    <style>
+        /* --- Tổng thể --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* --- Thanh Điều hướng (NAV) --- */
+        nav {
+            background-color: #ffffff;
+            padding: 15px 30px;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        nav a {
+            margin: 0 20px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 500;
+            color: #007bff;
+            transition: color 0.2s;
+        }
+        nav a:hover {
+            color: #0056b3;
+        }
+        nav a.active {
+            color: #333;
+            font-weight: 700;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+        }
+
+        /* --- Tiêu đề --- */
+        h1 {
+            color: #222;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        /* --- Lưới chứa biểu đồ --- */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        /* --- Thẻ (Card) chứa biểu đồ --- */
+        .chart-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 25px;
+            overflow: hidden;
+        }
+        .chart-card h2 {
+            margin-top: 0;
+            color: #0056b3;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        /* >>> MỚI: CSS ĐỂ BIẾN BIỂU ĐỒ THÀNH NÚT BẤM <<< */
+        .chart-card img,
+        .chart-card iframe {
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #eee;
+            box-sizing: border-box;
+            cursor: pointer; /* Biến con trỏ thành hình bàn tay */
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .chart-card img:hover,
+        .chart-card iframe:hover {
+            transform: scale(1.02); /* Phóng to nhẹ khi di chuột */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        /* --- Phần Phân tích (Insight) --- */
+        .insight {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 15px 20px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 1.05em;
+            line-height: 1.6;
+        }
+        .insight strong {
+            color: #0056b3;
+        }
+
+        /* >>> MỚI: CSS CHO MODAL (LIGHTBOX) <<< */
+        .modal-overlay {
+            position: fixed; /* Che toàn bộ màn hình */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* Lớp mờ màu đen */
+            display: none; /* Ẩn ban đầu */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.visible {
+            display: flex; /* Hiện khi có class 'visible' */
+        }
+        .modal-content {
+            position: relative;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90vw; /* Rộng 90% màn hình */
+            height: 90vh; /* Cao 90% màn hình */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content iframe,
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            border: none;
+            object-fit: contain; /* Hiển thị toàn bộ ảnh (cho PNG) */
+        }
+        .modal-close {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 35px;
+            height: 35px;
+            line-height: 35px;
+            text-align: center;
+            background: #fff;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        /* --- Responsive cho màn hình nhỏ --- */
+        @media (max-width: 700px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            nav a {
+                display: block;
+                margin: 10px 0;
+            }
+            .modal-content {
+                width: 95vw;
+                height: 80vh;
+            }
+        }
+    </style>
+    
+            <style>
+                .story-container {
+                    max-width: 900px; /* Giới hạn chiều rộng để dễ đọc */
+                    margin: 20px auto;
+                    line-height: 1.7;
+                    font-size: 1.1em;
+                }
+                .story-container h2 {
+                    color: #0056b3;
+                    border-bottom: 2px solid #007bff;
+                    padding-bottom: 10px;
+                    margin-top: 40px;
+                }
+                .story-container .chart-card {
+                    margin-top: 20px;
+                    margin-bottom: 30px;
+                }
+                .story-container .insight {
+                    font-size: 1.1em;
+                    line-height: 1.6;
+                }
+            </style>
+        </head>
+        <body>
+            <nav><a href="index.html" class="">Trang chủ (Tổng quan)</a><a href="1_timeseries.html" class="">Phân tích Thời gian</a><a href="2_distributions.html" class="">Phân tích Phân phối</a><a href="3_relationships.html" class="">Phân tích Quan hệ</a><a href="4_storytelling.html" class="active">Câu chuyện Dữ liệu</a></nav>
+            
+            <div class="container story-container">
+                <h1>Câu chuyện của Apple qua 45 năm Dữ liệu</h1>
+                <p>Dữ liệu không chỉ là những con số. Đó là những câu chuyện. Bằng cách nhìn vào lịch sử giá cổ phiếu Apple (AAPL) từ 1980 đến 2025,
+                chúng ta có thể thấy được một trong những hành trình kinh doanh đáng kinh ngạc nhất lịch sử.</p>
+
+                <h2>Chương 1: Sự Khởi đầu Khiêm tốn và Sự Sống còn</h2>
+                <p>Nhìn vào biểu đồ giá dài hạn, chúng ta thấy một đường gần như bằng phẳng kéo dài suốt 20 năm đầu tiên (1980-2000). 
+                Đây là thời kỳ Apple chỉ là một công ty máy tính thích hợp (niche), chật vật cạnh tranh và thậm chí suýt phá sản.</p>
+                <p>Giá cổ phiếu (đã điều chỉnh) gần như bằng 0. Nếu bạn zoom vào, bạn sẽ thấy sự biến động, nhưng trên bức tranh toàn cảnh, 
+                đó chỉ là một đường thẳng. Đó là câu chuyện về sự sống còn.</p>
+                
+                <div class="chart-card">
+                    <h3>Biểu đồ Đường: Giá Đóng cửa (1980 - 2025)</h3>
+                    <p class="insight">
+                        <strong>Insight:</strong> Toàn bộ sự tăng trưởng dường như chỉ xảy ra sau năm 2005. 
+                        Điều này cho thấy tầm quan trọng của việc "tái phát minh" công ty. 
+                        Bạn có thể click vào biểu đồ và dùng công cụ zoom để xem kỹ 20 năm đầu tiên.
+                    </p>
+                    <iframe src="charts_interactive/price_over_time.html" height="500" title="Biểu đồ đường giá đóng cửa"></iframe>
+                </div>
+
+                <h2>Chương 2: Cuộc Cách mạng iPhone (2007)</h2>
+                <p>Một điều gì đó đã thay đổi rõ rệt vào khoảng năm 2007. Đó chính là iPhone. 
+                Đây không chỉ là một sản phẩm mới; đó là một "điểm uốn" (inflection point) đã thay đổi quỹ đạo của công ty mãi mãi.
+                Từ thời điểm đó, đường giá bắt đầu một quỹ đạo gần như thẳng đứng.</p>
+                
+                <p>Nhưng không chỉ giá cả. Hãy nhìn vào khối lượng giao dịch. Sự quan tâm (và tiền bạc) của thị trường 
+                đổ vào Apple tăng vọt. Những "ngọn núi" về khối lượng giao dịch đột nhiên xuất hiện, thường trùng với các sự kiện ra mắt sản phẩm 
+                hoặc báo cáo tài chính quan trọng.</p>
+                
+                <div class="chart-card">
+                    <h3>Biểu đồ Vùng: Khối lượng Giao dịch</h3>
+                    <p class="insight">
+                        <strong>Insight:</strong> Khối lượng giao dịch (sự quan tâm) bùng nổ sau kỷ nguyên iPhone. 
+                        Những đợt tăng đột biến khổng lồ (như giai đoạn 2008, 2020) cho thấy những thời điểm thị trường 
+                        vừa phấn khích vừa hoảng sợ, nhưng luôn tập trung vào Apple.
+                    </p>
+                    <iframe src="charts_interactive/volume_over_time.html" height="500" title="Biểu đồ vùng khối lượng giao dịch"></iframe>
+                </div>
+
+                <h2>Chương 3: Tính cách của một Gã khổng lồ</h2>
+                <p>Khi đã trở thành công ty lớn nhất thế giới, Apple có còn rủi ro không? Biểu đồ Histogram về % thay đổi hàng ngày cho chúng ta câu trả lời.</p>
+                <p>Hầu hết các ngày (phần đỉnh nhọn ở giữa), cổ phiếu Apple rất "buồn tẻ", chỉ di chuyển nhẹ quanh 0%. 
+                Đây là đặc điểm của một cổ phiếu vốn hóa lớn, ổn định. 
+                Nhưng... hãy nhìn vào hai "cái đuôi" (tails) ở hai bên. Luôn có những ngày hiếm hoi mà cổ phiếu 
+                tăng hoặc giảm cực mạnh (5-10%).</p>
+                
+                <div class="chart-card">
+                    <h3>Histogram % Thay đổi hàng ngày</h3>
+                    <p class="insight">
+                        <strong>Insight:</strong> Apple là một cổ phiếu <strong>ổn định nhưng không nhàm chán</strong>. 
+                        Nó ổn định 95% thời gian, nhưng 5% còn lại là những biến động cực lớn. 
+                        Đây là rủi ro và cũng là cơ hội mà dữ liệu cảnh báo.
+                    </p>
+                    <img src="charts_static/daily_change_histogram.png" alt="Histogram % Thay đổi hàng ngày">
+                </div>
+                
+                <h2>Chương 4: Thị trường đang Nghĩ gì?</h2>
+                <p>Cuối cùng, chúng ta có thể kết hợp dữ liệu để hiểu "tâm lý thị trường". 
+                Biểu đồ Treemap cho thấy những năm và tháng nào "nóng" nhất về giao dịch (các ô càng lớn, khối lượng càng nhiều). 
+                Thường thì đó là các tháng cuối năm (mùa lễ hội, ra mắt sản phẩm) hoặc các giai đoạn khủng hoảng (như đầu năm 2020).</p>
+                
+                <p>Khi kết hợp với WordCloud (lấy từ tin tức), chúng ta thấy thị trường đang tập trung vào đâu. 
+                Những từ như "iPhone", "Pro", "Doanh thu" (Revenue) luôn là trung tâm. Câu chuyện của Apple luôn xoay quanh 
+                sự đổi mới sản phẩm và kết quả tài chính.</p>
+
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <h2>Treemap Khối lượng Giao dịch</h2>
+                        <p class="insight">Click vào các năm để xem tháng nào sôi động nhất.</p>
+                        <iframe src="charts_interactive/volume_treemap.html" height="500" title="Treemap Khối lượng Giao dịch"></iframe>
+                    </div>
+                    <div class="chart-card">
+                        <h2>WordCloud Tin tức</h2>
+                        <p class="insight">Thị trường luôn tập trung vào sản phẩm và lợi nhuận.</p>
+                        <img src="charts_static/news_wordcloud.png" alt="WordCloud Tin tức">
+                    </div>
+                </div>
+
+                <h2>Kết luận</h2>
+                <p>Câu chuyện của Apple, được kể qua dữ liệu, là một câu chuyện về sự kiên nhẫn và sự bùng nổ. 
+                Hơn 20 năm đầu kiên trì gần như vô hình, theo sau là 20 năm tăng trưởng phi mã được thúc đẩy 
+                bởi sự đổi mới mang tính cách mạng (iPhone). Dữ liệu cho thấy rõ ràng Apple đã biến mình 
+                từ một công ty máy tính thích hợp thành một gã khổng lồ về công nghệ tiêu dùng, và thị trường 
+                đã phản ứng lại bằng sự quan tâm và giá trị bùng nổ.</p>
+
+            </div>
+            
+        <div class="modal-overlay" id="chartModal">
+            <span class="modal-close" id="modalCloseButton">&times;</span>
+            <div class="modal-content" id="modalContent">
+                </div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const modal = document.getElementById('chartModal');
+                const modalContent = document.getElementById('modalContent');
+                const closeModal = document.getElementById('modalCloseButton');
+                const charts = document.querySelectorAll('.chart-card img, .chart-card iframe');
+                charts.forEach(chart => {
+                    chart.addEventListener('click', (e) => {
+                        e.preventDefault(); 
+                        modalContent.innerHTML = '';
+                        let newElement;
+                        if (chart.tagName === 'IMG') {
+                            newElement = document.createElement('img');
+                            newElement.src = chart.src;
+                        } else if (chart.tagName === 'IFRAME') {
+                            newElement = document.createElement('iframe');
+                            newElement.src = chart.src;
+                            newElement.setAttribute('frameborder', '0');
+                        }
+                        if (newElement) {
+                            modalContent.appendChild(newElement);
+                            modal.classList.add('visible');
+                        }
+                    });
+                });
+                const closeTheModal = () => {
+                    modal.classList.remove('visible');
+                    modalContent.innerHTML = '';
+                };
+                closeModal.addEventListener('click', closeTheModal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeTheModal();
+                    }
+                });
+            });
+        </script>
+    
+        </body>
+    </html>
+    
