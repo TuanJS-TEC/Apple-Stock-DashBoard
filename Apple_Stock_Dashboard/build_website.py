@@ -6,12 +6,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 from wordcloud import WordCloud
+import xml.etree.ElementTree as ET
 
 def get_global_css():
-    """
-    Trả về một chuỗi CSS chung để nhúng vào mọi trang.
-    (Nâng cấp V3: Thêm CSS cho Modal Lightbox)
-    """
     return """
     <style>
         /* --- Tổng thể --- */
@@ -219,39 +216,110 @@ def process_stock_data(filepath):
 
 def get_apple_news_text():
     """
-    Lấy các tiêu đề tin tức mới nhất về 'Apple Inc.' từ Google News.
-    (Đáp ứng Yêu cầu A: Dùng requests/BeautifulSoup)
+    Lấy các tiêu đề tin tức mới nhất từ RSS Feed chính thức của Apple Newsroom.
     """
-    print("Đang lấy tin tức từ Google News...")
-    try:
-        # Chúng ta dùng Google News làm API mở (Mô phỏng)
-        url = "https://www.google.com/search?q=Apple+Inc.+stock&tbm=nws"
-        # Google yêu cầu User-Agent để trông giống trình duyệt
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        
-        response = requests.get(url, headers=headers)
-        response.raise_for_status() # Báo lỗi nếu request thất bại
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Lấy tất cả các tiêu đề tin (thường trong thẻ <div> có vai trò 'heading')
-        headlines = soup.find_all('div', {'role': 'heading'})
-        
-        if not headlines:
-            print("Không tìm thấy tiêu đề tin tức (có thể cấu trúc Google đã thay đổi).")
-            return "Không có tin tức"
+    print("Đang lấy tin tức từ Apple Newsroom RSS Feed...")
 
-        # Nối tất cả các tiêu đề lại thành một chuỗi văn bản lớn
-        text_data = " ".join([h.get_text() for h in headlines])
+    # URL RSS Feed chính thức của Apple
+    url = "https://developer.apple.com/news/rss/news.rss"  # URL đúng hơn
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    try:
+        # Gửi request với timeout
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
         
-        print(f"Lấy tin tức... Xong (Tìm thấy {len(headlines)} tiêu đề).")
-        return text_data
-        
+        print(f"Status code: {response.status_code}")
+        print(f"Content type: {response.headers.get('Content-Type', 'Unknown')}")
+
+        # Phương pháp 1: Dùng xml.etree.ElementTree (nhanh và đáng tin cậy)
+        try:
+            root = ET.fromstring(response.content)
+            
+            # RSS 2.0 format: channel/item
+            items = root.findall('.//item')
+            
+            if not items:
+                print("Không tìm thấy items trong RSS feed.")
+                return "Không có tin tức"
+
+            text_data = []
+            for idx, item in enumerate(items[:10], 1):  # Lấy tối đa 10 tin
+                title = item.find('title')
+                description = item.find('description')
+                link = item.find('link')
+                
+                if title is not None and title.text:
+                    text_data.append(f"{idx}. {title.text.strip()}")
+                    
+                if description is not None and description.text:
+                    # Loại bỏ HTML tags từ description
+                    desc_soup = BeautifulSoup(description.text, 'html.parser')
+                    desc_text = desc_soup.get_text(strip=True)
+                    if desc_text:
+                        text_data.append(f"   {desc_text[:200]}...")  # Giới hạn 200 ký tự
+                
+                if link is not None and link.text:
+                    text_data.append(f"   Link: {link.text.strip()}")
+                
+                text_data.append("")  # Thêm dòng trống giữa các tin
+            
+            result = "\n".join(text_data)
+            print(f"✓ Lấy thành công {len(items)} tin từ Apple Newsroom")
+            return result if result else "Không có nội dung tin tức"
+            
+        except ET.ParseError as e:
+            print(f"Lỗi parse XML với ElementTree: {e}")
+            
+            # Phương pháp 2: Fallback sang BeautifulSoup
+            print("Thử lại với BeautifulSoup...")
+            soup = BeautifulSoup(response.content, 'xml')
+            items = soup.find_all('item')
+            
+            if not items:
+                print("BeautifulSoup cũng không tìm thấy items.")
+                return "Không có tin tức"
+            
+            text_data = []
+            for idx, item in enumerate(items[:10], 1):
+                title = item.find('title')
+                description = item.find('description')
+                
+                if title:
+                    text_data.append(f"{idx}. {title.get_text(strip=True)}")
+                if description:
+                    desc_text = BeautifulSoup(description.get_text(), 'html.parser').get_text(strip=True)
+                    text_data.append(f"   {desc_text[:200]}...")
+                text_data.append("")
+            
+            result = "\n".join(text_data)
+            print(f"✓ Lấy thành công {len(items)} tin (BeautifulSoup)")
+            return result if result else "Không có nội dung tin tức"
+
+    except requests.exceptions.Timeout:
+        print("⚠ Timeout: Server phản hồi quá lâu")
+        return "Không thể kết nối (timeout)"
+    
+    except requests.exceptions.ConnectionError:
+        print("⚠ Lỗi kết nối mạng")
+        return "Không thể kết nối mạng"
+    
+    except requests.exceptions.HTTPError as e:
+        print(f"⚠ Lỗi HTTP {response.status_code}: {e}")
+        return f"Lỗi server (HTTP {response.status_code})"
+    
     except requests.exceptions.RequestException as e:
-        print(f"Lỗi khi lấy tin tức: {e}")
+        print(f"⚠ Lỗi request: {e}")
         return "Không thể lấy tin tức"
+    
+    except Exception as e:
+        print(f"⚠ Lỗi không xác định: {type(e).__name__} - {e}")
+        return "Lỗi xử lý tin tức"
     
 # --- BƯỚC 3: TẠO BIỂU ĐỒ (PHIÊN BẢN NÂNG CẤP) ---
 
@@ -306,7 +374,6 @@ def create_visualizations(df, news_text, static_dir, interactive_dir):
     except ValueError:
         print("Lỗi: Không thể tạo WordCloud. Bỏ qua.")
 
-    # BIỂU ĐỒ 5 (Tĩnh - MỚI): Violin Plot
     plt.figure(figsize=(12, 7))
     sns.violinplot(x='Year', y='Daily_Change_Percent', data=df_recent)
     plt.title('Violin Plot: % Thay đổi hàng ngày (15 năm gần nhất)')
