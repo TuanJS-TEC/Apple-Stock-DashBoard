@@ -7,11 +7,70 @@ import seaborn as sns
 import plotly.express as px
 from wordcloud import WordCloud
 import xml.etree.ElementTree as ET
+import kagglehub  # <-- MỚI
+import json       # <-- MỚI
+
+def setup_kaggle_api(api_key_json):
+    """
+    Cài đặt file kaggle.json vào đúng vị trí ~/.kaggle/kaggle.json
+    để kagglehub có thể sử dụng.
+    """
+    print("Đang cài đặt Kaggle API key...")
+    try:
+        kaggle_dir = os.path.join(os.path.expanduser('~'), '.kaggle')
+        os.makedirs(kaggle_dir, exist_ok=True)
+        
+        kaggle_file_path = os.path.join(kaggle_dir, 'kaggle.json')
+        
+        with open(kaggle_file_path, 'w') as f:
+            json.dump(api_key_json, f)
+        
+        # Set permissions (rất quan trọng trên Linux/macOS)
+        if os.name != 'nt': # Không phải Windows
+            os.chmod(kaggle_file_path, 0o600)
+            
+        print(f"✓ Đã lưu API key vào {kaggle_file_path}")
+        print("✓ Cài đặt API thành công.")
+    except Exception as e:
+        print(f"⚠ Lỗi khi cài đặt Kaggle API: {e}")
+        print("Vui lòng cài đặt thủ công file kaggle.json vào ~/.kaggle/kaggle.json")
+
+def download_kaggle_dataset():
+    """
+    Tải dataset từ Kaggle Hub và trả về đường dẫn đến file CSV.
+    """
+    print("Đang tải dataset từ Kaggle (isaaclopgu/apple-stock-data-daily-updated)...")
+    try:
+        # Sử dụng code của bạn để tải
+        dataset_path = kagglehub.dataset_download("isaaclopgu/apple-stock-data-daily-updated")
+        
+        print(f"Dataset đã được tải về tại: {dataset_path}")
+
+        # Giờ chúng ta cần đường dẫn đến file CSV cụ thể bên trong thư mục đó
+        # Dựa trên dataset, file tên là 'Apple_historical_data.csv'
+        csv_file_path = os.path.join(dataset_path, 'Apple_historical_data.csv')
+        
+        if os.path.exists(csv_file_path):
+            print(f"✓ Tải thành công. Sử dụng file: {csv_file_path}")
+            return csv_file_path
+        else:
+            # Dự phòng: Nếu không tìm thấy file, thử tìm file .csv đầu tiên
+            for file in os.listdir(dataset_path):
+                if file.endswith('.csv'):
+                    print(f"✓ Tải thành công (Tìm thấy file: {file})")
+                    return os.path.join(dataset_path, file)
+            
+            print(f"⚠ Lỗi: Đã tải dataset tới {dataset_path} nhưng không tìm thấy file 'Apple_historical_data.csv'.")
+            return None
+            
+    except Exception as e:
+        print(f"⚠ Lỗi nghiêm trọng khi tải dataset Kaggle: {e}")
+        print("Hãy đảm bảo bạn đã cài đặt thư viện: pip install kaggle kagglehub")
+        return None
 
 def get_global_css():
     return """
     <style>
-        /* --- Tổng thể --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
@@ -24,7 +83,6 @@ def get_global_css():
             padding: 20px;
         }
 
-        /* --- Thanh Điều hướng (NAV) --- */
         nav {
             background-color: #ffffff;
             padding: 15px 30px;
@@ -50,14 +108,12 @@ def get_global_css():
             padding-bottom: 5px;
         }
 
-        /* --- Tiêu đề --- */
         h1 {
             color: #222;
             border-bottom: 2px solid #007bff;
             padding-bottom: 10px;
         }
         
-        /* --- Lưới chứa biểu đồ --- */
         .chart-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
@@ -65,7 +121,6 @@ def get_global_css():
             margin-top: 30px;
         }
 
-        /* --- Thẻ (Card) chứa biểu đồ --- */
         .chart-card {
             background-color: #ffffff;
             border-radius: 8px;
@@ -80,23 +135,21 @@ def get_global_css():
             padding-bottom: 15px;
         }
         
-        /* >>> MỚI: CSS ĐỂ BIẾN BIỂU ĐỒ THÀNH NÚT BẤM <<< */
         .chart-card img,
         .chart-card iframe {
             width: 100%;
             border-radius: 5px;
             border: 1px solid #eee;
             box-sizing: border-box;
-            cursor: pointer; /* Biến con trỏ thành hình bàn tay */
+            cursor: pointer;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
         .chart-card img:hover,
         .chart-card iframe:hover {
-            transform: scale(1.02); /* Phóng to nhẹ khi di chuột */
+            transform: scale(1.02);
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
         
-        /* --- Phần Phân tích (Insight) --- */
         .insight {
             background-color: #e6f7ff;
             border-left: 5px solid #007bff;
@@ -111,29 +164,28 @@ def get_global_css():
             color: #0056b3;
         }
 
-        /* >>> MỚI: CSS CHO MODAL (LIGHTBOX) <<< */
         .modal-overlay {
-            position: fixed; /* Che toàn bộ màn hình */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* Lớp mờ màu đen */
-            display: none; /* Ẩn ban đầu */
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
         .modal-overlay.visible {
-            display: flex; /* Hiện khi có class 'visible' */
+            display: flex;
         }
         .modal-content {
             position: relative;
             background: #fff;
             padding: 20px;
             border-radius: 8px;
-            width: 90vw; /* Rộng 90% màn hình */
-            height: 90vh; /* Cao 90% màn hình */
+            width: 90vw;
+            height: 90vh;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex;
             justify-content: center;
@@ -144,7 +196,7 @@ def get_global_css():
             width: 100%;
             height: 100%;
             border: none;
-            object-fit: contain; /* Hiển thị toàn bộ ảnh (cho PNG) */
+            object-fit: contain;
         }
         .modal-close {
             position: absolute;
@@ -163,7 +215,6 @@ def get_global_css():
             z-index: 1001;
         }
 
-        /* --- Responsive cho màn hình nhỏ --- */
         @media (max-width: 700px) {
             .chart-grid {
                 grid-template-columns: 1fr;
@@ -180,18 +231,13 @@ def get_global_css():
     </style>
     """
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Tạo đường dẫn đầy đủ và chính xác đến file CSV
-DATA_FILE_PATH = os.path.join(BASE_DIR, 'data', 'Apple_historical_data.csv')
+# Đường dẫn file dữ liệu cũ - SẼ ĐƯỢC GHI ĐÈ BỞI KAGGLE
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# DATA_FILE_PATH = os.path.join(BASE_DIR, 'data', 'Apple_historical_data.csv')
 
-# --- BƯỚC 2: XỬ LÝ DỮ LIỆU VÀ LẤY API ---
 
 def process_stock_data(filepath):
-    """
-    Đọc dữ liệu cổ phiếu từ file CSV, chuẩn hóa và tạo cột đặc trưng.
-    (Đáp ứng Yêu cầu B)
-    """
-    print("Đang xử lý dữ liệu cổ phiếu...")
+    print(f"Đang xử lý dữ liệu cổ phiếu từ: {filepath}")
     try:
         df = pd.read_csv(filepath)
     except FileNotFoundError:
@@ -202,10 +248,8 @@ def process_stock_data(filepath):
     df['Date'] = temp_date_col.dt.date
     df['Date'] = pd.to_datetime(df['Date'])    
 
-    # Xử lý thiếu (ví dụ đơn giản là xóa dòng có dữ liệu thiếu)
     df.dropna(inplace=True) 
     
-    # Tạo cột đặc trưng mới
     df['Year'] = df['Date'].dt.year
     df['Month'] = df['Date'].dt.month
     df['Day'] = df['Date'].dt.day
@@ -215,13 +259,9 @@ def process_stock_data(filepath):
     return df
 
 def get_apple_news_text():
-    """
-    Lấy các tiêu đề tin tức mới nhất từ RSS Feed chính thức của Apple Newsroom.
-    """
     print("Đang lấy tin tức từ Apple Newsroom RSS Feed...")
 
-    # URL RSS Feed chính thức của Apple
-    url = "https://developer.apple.com/news/rss/news.rss"  # URL đúng hơn
+    url = "https://developer.apple.com/news/rss/news.rss"
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -230,18 +270,15 @@ def get_apple_news_text():
     }
 
     try:
-        # Gửi request với timeout
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         
         print(f"Status code: {response.status_code}")
         print(f"Content type: {response.headers.get('Content-Type', 'Unknown')}")
 
-        # Phương pháp 1: Dùng xml.etree.ElementTree (nhanh và đáng tin cậy)
         try:
             root = ET.fromstring(response.content)
             
-            # RSS 2.0 format: channel/item
             items = root.findall('.//item')
             
             if not items:
@@ -249,7 +286,7 @@ def get_apple_news_text():
                 return "Không có tin tức"
 
             text_data = []
-            for idx, item in enumerate(items[:10], 1):  # Lấy tối đa 10 tin
+            for idx, item in enumerate(items[:10], 1):
                 title = item.find('title')
                 description = item.find('description')
                 link = item.find('link')
@@ -258,16 +295,15 @@ def get_apple_news_text():
                     text_data.append(f"{idx}. {title.text.strip()}")
                     
                 if description is not None and description.text:
-                    # Loại bỏ HTML tags từ description
                     desc_soup = BeautifulSoup(description.text, 'html.parser')
                     desc_text = desc_soup.get_text(strip=True)
                     if desc_text:
-                        text_data.append(f"   {desc_text[:200]}...")  # Giới hạn 200 ký tự
+                        text_data.append(f"   {desc_text[:200]}...")
                 
                 if link is not None and link.text:
                     text_data.append(f"   Link: {link.text.strip()}")
                 
-                text_data.append("")  # Thêm dòng trống giữa các tin
+                text_data.append("")
             
             result = "\n".join(text_data)
             print(f"✓ Lấy thành công {len(items)} tin từ Apple Newsroom")
@@ -276,7 +312,6 @@ def get_apple_news_text():
         except ET.ParseError as e:
             print(f"Lỗi parse XML với ElementTree: {e}")
             
-            # Phương pháp 2: Fallback sang BeautifulSoup
             print("Thử lại với BeautifulSoup...")
             soup = BeautifulSoup(response.content, 'xml')
             items = soup.find_all('item')
@@ -321,23 +356,13 @@ def get_apple_news_text():
         print(f"⚠ Lỗi không xác định: {type(e).__name__} - {e}")
         return "Lỗi xử lý tin tức"
     
-# --- BƯỚC 3: TẠO BIỂU ĐỒ (PHIÊN BẢN NÂNG CẤP) ---
-
 def create_visualizations(df, news_text, static_dir, interactive_dir):
-    """
-    Tạo tất cả các biểu đồ tĩnh (PNG) và tương tác (HTML).
-    (Đáp ứng Yêu cầu C & D)
-    """
     print("Đang tạo biểu đồ (phiên bản 10 biểu đồ)...")
     
-    # Chuẩn bị dữ liệu cho một số biểu đồ
-    df_recent = df[df['Year'] > df['Year'].max() - 15] # 15 năm gần nhất
-    df_grouped = df.groupby(['Year', 'Month'])['Volume'].sum().reset_index() # Dùng cho Treemap/Sunburst
-    df_sample = df.sample(min(5000, len(df))) # Dùng cho Scatter
+    df_recent = df[df['Year'] > df['Year'].max() - 15]
+    df_grouped = df.groupby(['Year', 'Month'])['Volume'].sum().reset_index()
+    df_sample = df.sample(min(5000, len(df)))
     
-    # --- 1. Biểu đồ Tĩnh (Lưu vào /charts_static/) ---
-    
-    # BIỂU ĐỒ 1 (Tĩnh): Histogram
     plt.figure(figsize=(10, 6))
     sns.histplot(df['Daily_Change_Percent'], bins=50, kde=True)
     plt.title('Phân phối % Thay đổi giá hàng ngày')
@@ -346,14 +371,12 @@ def create_visualizations(df, news_text, static_dir, interactive_dir):
     plt.savefig(os.path.join(static_dir, 'daily_change_histogram.png'))
     plt.close()
 
-    # BIỂU ĐỒ 2 (Tĩnh): Boxplot
     plt.figure(figsize=(12, 7))
     sns.boxplot(x='Year', y='Close', data=df_recent)
     plt.title('Boxplot giá đóng cửa (15 năm gần nhất)')
     plt.savefig(os.path.join(static_dir, 'price_boxplot_by_year.png'))
     plt.close()
     
-    # BIỂU ĐỒ 3 (Tĩnh): Heatmap
     plt.figure(figsize=(8, 6))
     corr_cols = ['Open', 'High', 'Low', 'Close', 'Volume', 'Daily_Change_Percent']
     corr = df[corr_cols].corr()
@@ -362,7 +385,6 @@ def create_visualizations(df, news_text, static_dir, interactive_dir):
     plt.savefig(os.path.join(static_dir, 'correlation_heatmap.png'))
     plt.close()
 
-    # BIỂU ĐỒ 4 (Tĩnh): WordCloud
     try:
         wordcloud = WordCloud(width=800, height=400, background_color='white').generate(news_text)
         plt.figure(figsize=(10, 5))
@@ -377,46 +399,38 @@ def create_visualizations(df, news_text, static_dir, interactive_dir):
     plt.figure(figsize=(12, 7))
     sns.violinplot(x='Year', y='Daily_Change_Percent', data=df_recent)
     plt.title('Violin Plot: % Thay đổi hàng ngày (15 năm gần nhất)')
-    plt.ylim(-10, 10) # Giới hạn trục Y để dễ nhìn hơn
+    plt.ylim(-10, 10)
     plt.savefig(os.path.join(static_dir, 'daily_change_violin_by_year.png'))
     plt.close()
 
 
-    # --- 2. Biểu đồ Tương tác (Lưu vào /charts_interactive/) ---
-    
-    # BIỂU ĐỒ 6 (Tương tác): Line (Giá)
     fig_line = px.line(df, x='Date', y='Close', title='Biến động giá đóng cửa (AAPL) theo thời gian')
     fig_line.write_html(os.path.join(interactive_dir, 'price_over_time.html'))
 
-    # BIỂU ĐỒ 7 (Tương tác): Scatter
     fig_scatter = px.scatter(df_sample, x='High', y='Low', trendline='ols', 
                              title='Scatter Plot High vs Low (có hồi quy - 5000 điểm mẫu)')
     fig_scatter.write_html(os.path.join(interactive_dir, 'scatter_regression.html'))
 
-    # BIỂU ĐỒ 8 (Tương tác): Treemap
     fig_treemap = px.treemap(df_grouped, path=[px.Constant('Tất cả'), 'Year', 'Month'], values='Volume',
                              title='Treemap tổng khối lượng giao dịch theo Năm/Tháng')
     fig_treemap.write_html(os.path.join(interactive_dir, 'volume_treemap.html'))
     
-    # BIỂU ĐỒ 9 (Tương tác - MỚI): Area (Volume)
     fig_area = px.area(df, x='Date', y='Volume', title='Biến động Khối lượng Giao dịch theo thời gian')
     fig_area.write_html(os.path.join(interactive_dir, 'volume_over_time.html'))
 
-    # BIỂU ĐỒ 10 (Tương tác - MỚI): Sunburst
     fig_sunburst = px.sunburst(
     df_grouped,
     path=['Year', 'Month'],
     values='Volume',
-    color='Year',  # tô màu theo năm để dễ phân biệt
-    color_continuous_scale='Blues',  # thang màu nhẹ, dễ nhìn
+    color='Year',
+    color_continuous_scale='Blues',
     title='📊 Sunburst: Khối lượng giao dịch Apple (AAPL) theo Năm và Tháng',
 )
 
-    # --- Tùy chỉnh giao diện ---
     fig_sunburst.update_traces(
-        textinfo="label+percent parent",  # chỉ hiển thị nhãn và phần trăm trong năm
+        textinfo="label+percent parent",
         insidetextorientation='radial',
-        hovertemplate="<b>%{label}</b><br>Volume: %{value:,}<extra></extra>",  # định dạng số dễ đọc
+        hovertemplate="<b>%{label}</b><br>Volume: %{value:,}<extra></extra>",
     )
 
     fig_sunburst.update_layout(
@@ -424,49 +438,40 @@ def create_visualizations(df, news_text, static_dir, interactive_dir):
         uniformtext=dict(minsize=10, mode='hide'),
         margin=dict(t=80, l=0, r=0, b=0),
         height=700,
-        coloraxis_showscale=False,  # ẩn thanh màu
+        coloraxis_showscale=False,
         paper_bgcolor="white",
         font=dict(family="Arial", size=13)
     )
 
-    # Ghi ra file HTML
     fig_sunburst.write_html(os.path.join(interactive_dir, 'volume_sunburst.html'))
     print("✅ Biểu đồ Sunburst (nâng cấp) đã được tạo!")
         
     print("Tạo biểu đồ... Xong (10 biểu đồ).")
 
-# --- BƯỚC 4: TẠO CÁC TRANG WEB HTML ---
-
+# HÀM NÀY BỊ THIẾU TRONG FILE CỦA BẠN
 def get_navigation_menu(current_page=""):
-    """Tạo một menu điều hướng (navbar) sử dụng class CSS. (V4: Thêm Storytelling)"""
     pages = {
         "index.html": "Trang chủ (Tổng quan)",
         "1_timeseries.html": "Phân tích Thời gian",
         "2_distributions.html": "Phân tích Phân phối",
         "3_relationships.html": "Phân tích Quan hệ",
-        "4_storytelling.html": "Câu chuyện Dữ liệu" # <-- TRANG MỚI
+        "4_storytelling.html": "Câu chuyện Dữ liệu"
     }
     
     menu_html = '<nav>'
     for page_file, page_title in pages.items():
-        # Thêm class 'active' nếu là trang hiện tại
         active_class = 'active' if page_file == current_page else ''
         menu_html += f'<a href="{page_file}" class="{active_class}">{page_title}</a>'
         
     menu_html += '</nav>'
     return menu_html
 
-
-# --- BƯỚC 4: TẠO CÁC TRANG WEB HTML (PHIÊN BẢN NÂNG CẤP) ---
+# HÀM NÀY BỊ THIẾU TRONG FILE CỦA BẠN
 def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
-    """
-    Tạo tất cả các file HTML cho website (phiên bản nâng cấp V4 - Thêm Storytelling).
-    """
     print("Đang tạo các trang web HTML (phiên bản nâng cấp V4)...")
     
     global_css = get_global_css()
     
-    # --- MỚI: Cấu trúc HTML và JS cho Modal (Giữ nguyên từ bước trước) ---
     modal_html_and_js = """
         <div class="modal-overlay" id="chartModal">
             <span class="modal-close" id="modalCloseButton">&times;</span>
@@ -512,8 +517,6 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
         </script>
     """
 
-    # --- index.html (Trang chủ) ---
-    # (Giữ nguyên code tạo trang index.html)
     html_index = f"""
     <html>
         <head>
@@ -546,8 +549,6 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
     with open(os.path.join(base_dir, 'index.html'), 'w', encoding='utf-8') as f:
         f.write(html_index)
 
-    # --- 1_timeseries.html (Trang thời gian) ---
-    # (Giữ nguyên code tạo trang 1_timeseries.html)
     html_page1 = f"""
     <html>
         <head>
@@ -567,7 +568,7 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
                         <iframe src="{interactive_dir_name}/price_over_time.html" height="500" title="Biểu đồ đường giá đóng cửa"></iframe>
                     </div>
                     <div class="chart-card">
-                        <h2>Biểu đồ Vùng: Khối lượng Giao dịch (MỚI)</h2>
+                        <h2>Biểu đồ Vùng: Khối lượng Giao dịch</h2>
                         <p class="insight"><strong>Insight:</strong> Những đỉnh khối lượng đột biến thường xảy ra khi có tin tức lớn (báo cáo tài chính, ra mắt sản phẩm).</p>
                         <iframe src="{interactive_dir_name}/volume_over_time.html" height="500" title="Biểu đồ vùng khối lượng giao dịch"></iframe>
                     </div>
@@ -580,8 +581,6 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
     with open(os.path.join(base_dir, '1_timeseries.html'), 'w', encoding='utf-8') as f:
         f.write(html_page1)
 
-    # --- 2_distributions.html (Trang phân phối) ---
-    # (Giữ nguyên code tạo trang 2_distributions.html)
     html_page2 = f"""
     <html>
         <head>
@@ -606,7 +605,7 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
                         <img src="{static_dir_name}/price_boxplot_by_year.png" alt="Boxplot Giá đóng cửa">
                     </div>
                     <div class="chart-card">
-                        <h2>Violin Plot: % Thay đổi hàng ngày (MỚI)</h2>
+                        <h2>Violin Plot: % Thay đổi hàng ngày </h2>
                         <p class="insight"><strong>Insight:</strong> Kết hợp Histogram và Boxplot. Phần "thân đàn" phình to cho thấy dữ liệu tập trung (quanh 0%) ở các năm.</p>
                         <img src="{static_dir_name}/daily_change_violin_by_year.png" alt="Violin Plot % Thay đổi hàng ngày">
                     </div>
@@ -619,8 +618,6 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
     with open(os.path.join(base_dir, '2_distributions.html'), 'w', encoding='utf-8') as f:
         f.write(html_page2)
     
-    # --- 3_relationships.html (Trang quan hệ) ---
-    # (Giữ nguyên code tạo trang 3_relationships.html)
     html_page3 = f"""
     <html>
         <head>
@@ -645,7 +642,7 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
                         <iframe src="{interactive_dir_name}/volume_treemap.html" height="700" title="Treemap Khối lượng Giao dịch"></iframe>
                     </div>
                     <div class="chart-card">
-                        <h2>Sunburst Khối lượng Giao dịch (MỚI - Tương tác)</h2>
+                        <h2>Sunburst Khối lượng Giao dịch (Tương tác)</h2>
                         <p class="insight"><strong>Insight:</strong> Tương tự Treemap nhưng ở dạng hình tròn. Vòng trong là Năm, vòng ngoài là Tháng. Giúp so sánh trực quan các tháng.</p>
                         <iframe src="{interactive_dir_name}/volume_sunburst.html" height="700" title="Sunburst Khối lượng Giao dịch"></iframe>
                     </div>
@@ -658,9 +655,6 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
     with open(os.path.join(base_dir, '3_relationships.html'), 'w', encoding='utf-8') as f:
         f.write(html_page3)
         
-    # --- MỚI: 4_storytelling.html (Trang kể chuyện) ---
-    # Chúng ta sẽ viết một bài phân tích dài, sử dụng lại các biểu đồ đã tạo
-    
     html_page4 = f"""
     <html>
         <head>
@@ -669,7 +663,7 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
             {global_css}
             <style>
                 .story-container {{
-                    max-width: 900px; /* Giới hạn chiều rộng để dễ đọc */
+                    max-width: 900px;
                     margin: 20px auto;
                     line-height: 1.7;
                     font-size: 1.1em;
@@ -789,46 +783,51 @@ def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
     
     print("Tạo các trang web HTML... Xong (phiên bản V4 - có Storytelling).")
 
-# --- PHẦN ĐỂ CHẠY THỬ NGHIỆM (Sẽ thêm hàm main() sau) ---
+# KHỐI THỰC THI NÀY ĐÃ ĐƯỢC CẬP NHẬT
 if __name__ == "__main__":
-    # --- Thiết lập Đường dẫn ---
-    # BASE_DIR là thư mục chứa file build_website.py
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-    # Đường dẫn tuyệt đối (cho Python sử dụng)
-    DATA_FILE_PATH = os.path.join(BASE_DIR, 'data', 'Apple_historical_data.csv')
-    STATIC_DIR_PATH = os.path.join(BASE_DIR, 'charts_static')
-    INTERACTIVE_DIR_PATH = os.path.join(BASE_DIR, 'charts_interactive')
-
-    # Tên thư mục tương đối (cho HTML sử dụng)
-    # HTML <img src="charts_static/file.png">
-    STATIC_DIR_NAME = 'charts_static'
-    INTERACTIVE_DIR_NAME = 'charts_interactive'
-
-    # Đảm bảo các thư mục con tồn tại
-    os.makedirs(STATIC_DIR_PATH, exist_ok=True)
-    os.makedirs(INTERACTIVE_DIR_PATH, exist_ok=True)
-
-
-    # --- BƯỚC 2 (Thực thi) ---
-    print("--- BƯỚC 2: XỬ LÝ DỮ LIỆU ---")
-    df = process_stock_data(DATA_FILE_PATH)
-    news_text = get_apple_news_text()
+    # --- THAY ĐỔI LỚN ---
+    print("--- BƯỚC 1: CÀI ĐẶT & TẢI DỮ LIỆU ---")
+    
+    KAGGLE_API_KEY = {"username":"hoangtuanjs","key":"28bed3d819cf1400ed7ded78868f3486"}
+    
+    # Cài đặt API key vào vị trí
+    setup_kaggle_api(KAGGLE_API_KEY)
+    
+    # Tải dataset và lấy đường dẫn file CSV
+    DATA_FILE_PATH = download_kaggle_dataset()
     print("-" * 30 + "\n")
 
-    if df is not None:
-        # --- BƯỚC 3 (Thực thi) ---
-        print("--- BƯỚC 3: TẠO BIỂU ĐỒ ---")
-        create_visualizations(df, news_text, STATIC_DIR_PATH, INTERACTIVE_DIR_PATH)
-        print("-" * 30 + "\n")
-
-        # --- BƯỚC 4 (Thực thi) ---
-        print("--- BƯỚC 4: TẠO WEBSITE ---")
-        create_html_pages(BASE_DIR, STATIC_DIR_NAME, INTERACTIVE_DIR_NAME)
-        print("-" * 30 + "\n")
-
-        print("\n=== HOÀN TẤT DỰ ÁN! ===")
-        print(f"Mở file sau trong trình duyệt để xem website của bạn:")
-        print(f"file://{os.path.join(BASE_DIR, 'index.html')}")
+    if DATA_FILE_PATH is None:
+        print("Dừng chương trình vì không thể tải dữ liệu từ Kaggle.")
+        # exit() # Bỏ comment nếu muốn chương trình dừng hẳn
     else:
-        print("Dừng chương trình vì không thể xử lý dữ liệu.")
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        STATIC_DIR_PATH = os.path.join(BASE_DIR, 'charts_static')
+        INTERACTIVE_DIR_PATH = os.path.join(BASE_DIR, 'charts_interactive')
+
+        STATIC_DIR_NAME = 'charts_static'
+        INTERACTIVE_DIR_NAME = 'charts_interactive'
+
+        os.makedirs(STATIC_DIR_PATH, exist_ok=True)
+        os.makedirs(INTERACTIVE_DIR_PATH, exist_ok=True)
+
+
+        print("--- BƯỚC 2: XỬ LÝ DỮ LIỆU ---")
+        df = process_stock_data(DATA_FILE_PATH) 
+        news_text = get_apple_news_text()
+        print("-" * 30 + "\n")
+
+        if df is not None:
+            print("--- BƯỚC 3: TẠO BIỂU ĐỒ ---")
+            create_visualizations(df, news_text, STATIC_DIR_PATH, INTERACTIVE_DIR_PATH)
+            print("-" * 30 + "\n")
+
+            print("--- BƯỚC 4: TẠO WEBSITE ---")
+            create_html_pages(BASE_DIR, STATIC_DIR_NAME, INTERACTIVE_DIR_NAME)
+            print("-" * 30 + "\n")
+
+            print("\n=== HOÀN TẤT DỰ ÁN! ===")
+            print(f"Mở file sau trong trình duyệt để xem website của bạn:")
+            print(f"file://{os.path.join(BASE_DIR, 'index.html')}")
+        else:
+            print("Dừng chương trình vì không thể xử lý dữ liệu.")

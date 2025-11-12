@@ -5,7 +5,6 @@
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             
     <style>
-        /* --- Tổng thể --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
@@ -18,7 +17,6 @@
             padding: 20px;
         }
 
-        /* --- Thanh Điều hướng (NAV) --- */
         nav {
             background-color: #ffffff;
             padding: 15px 30px;
@@ -44,14 +42,12 @@
             padding-bottom: 5px;
         }
 
-        /* --- Tiêu đề --- */
         h1 {
             color: #222;
             border-bottom: 2px solid #007bff;
             padding-bottom: 10px;
         }
         
-        /* --- Lưới chứa biểu đồ --- */
         .chart-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
@@ -59,7 +55,6 @@
             margin-top: 30px;
         }
 
-        /* --- Thẻ (Card) chứa biểu đồ --- */
         .chart-card {
             background-color: #ffffff;
             border-radius: 8px;
@@ -74,23 +69,21 @@
             padding-bottom: 15px;
         }
         
-        /* >>> MỚI: CSS ĐỂ BIẾN BIỂU ĐỒ THÀNH NÚT BẤM <<< */
         .chart-card img,
         .chart-card iframe {
             width: 100%;
             border-radius: 5px;
             border: 1px solid #eee;
             box-sizing: border-box;
-            cursor: pointer; /* Biến con trỏ thành hình bàn tay */
+            cursor: pointer;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
         .chart-card img:hover,
         .chart-card iframe:hover {
-            transform: scale(1.02); /* Phóng to nhẹ khi di chuột */
+            transform: scale(1.02);
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
         
-        /* --- Phần Phân tích (Insight) --- */
         .insight {
             background-color: #e6f7ff;
             border-left: 5px solid #007bff;
@@ -105,29 +98,28 @@
             color: #0056b3;
         }
 
-        /* >>> MỚI: CSS CHO MODAL (LIGHTBOX) <<< */
         .modal-overlay {
-            position: fixed; /* Che toàn bộ màn hình */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* Lớp mờ màu đen */
-            display: none; /* Ẩn ban đầu */
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
         .modal-overlay.visible {
-            display: flex; /* Hiện khi có class 'visible' */
+            display: flex;
         }
         .modal-content {
             position: relative;
             background: #fff;
             padding: 20px;
             border-radius: 8px;
-            width: 90vw; /* Rộng 90% màn hình */
-            height: 90vh; /* Cao 90% màn hình */
+            width: 90vw;
+            height: 90vh;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex;
             justify-content: center;
@@ -138,7 +130,7 @@
             width: 100%;
             height: 100%;
             border: none;
-            object-fit: contain; /* Hiển thị toàn bộ ảnh (cho PNG) */
+            object-fit: contain;
         }
         .modal-close {
             position: absolute;
@@ -157,7 +149,6 @@
             z-index: 1001;
         }
 
-        /* --- Responsive cho màn hình nhỏ --- */
         @media (max-width: 700px) {
             .chart-grid {
                 grid-template-columns: 1fr;
@@ -191,7 +182,7 @@
                         <iframe src="charts_interactive/volume_treemap.html" height="700" title="Treemap Khối lượng Giao dịch"></iframe>
                     </div>
                     <div class="chart-card">
-                        <h2>Sunburst Khối lượng Giao dịch (MỚI - Tương tác)</h2>
+                        <h2>Sunburst Khối lượng Giao dịch (Tương tác)</h2>
                         <p class="insight"><strong>Insight:</strong> Tương tự Treemap nhưng ở dạng hình tròn. Vòng trong là Năm, vòng ngoài là Tháng. Giúp so sánh trực quan các tháng.</p>
                         <iframe src="charts_interactive/volume_sunburst.html" height="700" title="Sunburst Khối lượng Giao dịch"></iframe>
                     </div>
