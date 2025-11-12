@@ -7,8 +7,8 @@ import seaborn as sns
 import plotly.express as px
 from wordcloud import WordCloud
 import xml.etree.ElementTree as ET
-import kagglehub  # <-- MỚI
-import json       # <-- MỚI
+import kagglehub
+import json       
 
 def setup_kaggle_api(api_key_json):
     """
@@ -230,11 +230,6 @@ def get_global_css():
         }
     </style>
     """
-
-# Đường dẫn file dữ liệu cũ - SẼ ĐƯỢC GHI ĐÈ BỞI KAGGLE
-# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# DATA_FILE_PATH = os.path.join(BASE_DIR, 'data', 'Apple_historical_data.csv')
-
 
 def process_stock_data(filepath):
     print(f"Đang xử lý dữ liệu cổ phiếu từ: {filepath}")
@@ -466,7 +461,6 @@ def get_navigation_menu(current_page=""):
     menu_html += '</nav>'
     return menu_html
 
-# HÀM NÀY BỊ THIẾU TRONG FILE CỦA BẠN
 def create_html_pages(base_dir, static_dir_name, interactive_dir_name):
     print("Đang tạo các trang web HTML (phiên bản nâng cấp V4)...")
     
